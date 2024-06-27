@@ -1,39 +1,42 @@
 # app/main.py
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from diffusers import StableDiffusionPipeline
-from PIL import Image
-import io
-import base64
-import torch
+import requests
+from app.models.request import ImageRequest
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 app = FastAPI()
 
-# Load the model from local path
-local_path = "./stable-diffusion-2-1"
-pipe = StableDiffusionPipeline.from_pretrained(local_path)
-pipe = pipe.to("cpu")  # Use "cpu" if you do not have a CUDA-compatible GPU
+@app.post("/generate-image/")
+def generate_image(request: ImageRequest):
+    url = "https://api.corcel.io/v1/image/vision/text-to-image"
 
-class MemeRequest(BaseModel):
-    text: str
+    api_key = os.getenv("API_KEY")
+    
+    if not api_key:
+        raise HTTPException(status_code=500, detail="API key is missing")
+    
+    payload = {
+        "text_prompts": [prompt.dict() for prompt in request.text_prompts],
+        "cfg_scale": request.cfg_scale,
+        "height": request.height,
+        "width": request.width,
+        "steps": request.steps,
+        "engine": request.engine
+    }
 
-@app.post("/generate-meme")
-async def generate_meme(request: MemeRequest):
-    try:
-        # Generate image
-        with torch.no_grad():
-            image = pipe(request.text).images[0]
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "Authorization": api_key
+    }
 
-        # Convert PIL image to base64 string
-        buffered = io.BytesIO()
-        image.save(buffered, format="PNG")
-        img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+    response = requests.post(url, json=payload, headers=headers)
 
-        return {"image": img_str}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail=response.text)
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    return response.json()
