@@ -62,6 +62,8 @@ async def generate_image(request: ImageRequest):
     try:
         with open("response.json", "r") as json_file:
             data = json.load(json_file)
+            if not isinstance(data, list):
+                data = []
     except (FileNotFoundError, json.JSONDecodeError):
         data = []
 
@@ -74,10 +76,12 @@ async def generate_image(request: ImageRequest):
     return response_json
 
 @app.get("/images")
-async def get_images() -> List[str]:
+async def get_images() -> List[dict]:
     try:
         with open("response.json", "r") as json_file:
             data = json.load(json_file)
+            if not isinstance(data, list):
+                data = []
             return data
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="No images found")
