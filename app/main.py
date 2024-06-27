@@ -4,6 +4,7 @@ import requests
 from dotenv import load_dotenv
 import os
 import json
+from datetime import datetime
 from typing import List
 
 class ImageRequest(BaseModel):
@@ -52,6 +53,20 @@ async def generate_image(request: ImageRequest):
 
     response_json = response.json()
 
+    new_entry = {
+        "text": request.text,
+        "created_at": datetime.utcnow().isoformat(),
+        "response": response_json
+    }
+    
+    try:
+        with open("response.json", "r") as json_file:
+            data = json.load(json_file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        data = []
+
+    data.append(new_entry)
+    
     # Save response JSON to a file
     with open("response.json", "w") as json_file:
         json.dump(response_json, json_file)
@@ -59,13 +74,11 @@ async def generate_image(request: ImageRequest):
     return response_json
 
 @app.get("/images")
-async def get_images() -> List[str]:
+async def get_images() -> List[dict]:
     try:
         with open("response.json", "r") as json_file:
             data = json.load(json_file)
-            # Assuming the images are stored in a field called "images" in the response
-            images = data.get("images", [])
-            return images
+            return data
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="No images found")
     except json.JSONDecodeError:
