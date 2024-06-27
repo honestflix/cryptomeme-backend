@@ -13,7 +13,7 @@ app = FastAPI()
 # Load the model from local path
 local_path = "./stable-diffusion-2-1"
 pipe = StableDiffusionPipeline.from_pretrained(local_path)
-pipe = pipe.to("cuda")  # Use "cpu" if you do not have a CUDA-compatible GPU
+pipe = pipe.to("cpu")  # Use "cpu" if you do not have a CUDA-compatible GPU
 
 class MemeRequest(BaseModel):
     text: str
