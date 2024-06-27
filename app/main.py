@@ -3,6 +3,9 @@ from pydantic import BaseModel
 import requests
 from dotenv import load_dotenv
 import os
+import json
+from typing import List
+
 class ImageRequest(BaseModel):
     text: str
     cfg_scale: int = 2
@@ -20,6 +23,7 @@ TOKEN = os.getenv("TOKEN")
 
 if not TOKEN:
     raise ValueError("Missing required environment variable: TOKEN")
+
 @app.post("/generate")
 async def generate_image(request: ImageRequest):
     payload = {
@@ -46,7 +50,26 @@ async def generate_image(request: ImageRequest):
     if response.status_code != 200:
         raise HTTPException(status_code=response.status_code, detail=response.text)
 
-    return response.json()
+    response_json = response.json()
+
+    # Save response JSON to a file
+    with open("response.json", "w") as json_file:
+        json.dump(response_json, json_file)
+
+    return response_json
+
+@app.get("/images")
+async def get_images() -> List[str]:
+    try:
+        with open("response.json", "r") as json_file:
+            data = json.load(json_file)
+            # Assuming the images are stored in a field called "images" in the response
+            images = data.get("images", [])
+            return images
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="No images found")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Error reading the JSON file")
 
 if __name__ == "__main__":
     import uvicorn
