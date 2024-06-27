@@ -37,12 +37,11 @@ async def generate_image(request: ImageRequest):
         raise HTTPException(status_code=response.status_code, detail=response.text)
 
     response_data = response.json()
-    image_url = response_data.get("url")  # Assuming the response contains the URL in the "url" field
+    image_url = response_data.get("signed_url")  
 
     if not image_url:
         raise HTTPException(status_code=500, detail="Image URL not found in the response")
 
-    # Save the image details
     save_image_details(url=image_url, prompt=request.text)
     
     logger.info(f"Response: {response_data}")
