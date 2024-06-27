@@ -5,7 +5,7 @@ This application generates crypto memes based on text prompts using a Hugging Fa
 ## Features
 
 - Generates images from text prompts.
-- Utilizes the `CompVis/stable-diffusion-v-1-4` model from Hugging Face.
+- Utilizes the `stabilityai/stable-diffusion-2-1` model from Hugging Face.
 - FastAPI for serving the model.
 
 ## Requirements
