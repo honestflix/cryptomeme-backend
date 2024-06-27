@@ -74,7 +74,7 @@ async def generate_image(request: ImageRequest):
     return response_json
 
 @app.get("/images")
-async def get_images() -> List[dict]:
+async def get_images() -> List[str]:
     try:
         with open("response.json", "r") as json_file:
             data = json.load(json_file)
