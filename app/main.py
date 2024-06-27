@@ -2,29 +2,18 @@
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from transformers import pipeline
+from diffusers import StableDiffusionPipeline
 from PIL import Image
 import io
 import base64
-import os
-from huggingface_hub import login
-from dotenv import load_dotenv
+import torch
 
 app = FastAPI()
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Get Hugging Face access token from environment variable
-HUGGINGFACE_ACCESS_TOKEN = os.getenv("HUGGINGFACE_ACCESS_TOKEN")
-
-if not HUGGINGFACE_ACCESS_TOKEN:
-    raise ValueError("Hugging Face access token is not set in the environment variables")
-
-login(token=HUGGINGFACE_ACCESS_TOKEN)
-
-# Load the model
-generator = pipeline('text-to-image', model='stabilityai/stable-diffusion-2-1', use_auth_token=HUGGINGFACE_ACCESS_TOKEN, framework='pt')
+# Load the model from local path
+local_path = "./stable-diffusion-2-1"
+pipe = StableDiffusionPipeline.from_pretrained(local_path)
+pipe = pipe.to("cuda")  # Use "cpu" if you do not have a CUDA-compatible GPU
 
 class MemeRequest(BaseModel):
     text: str
@@ -33,8 +22,8 @@ class MemeRequest(BaseModel):
 async def generate_meme(request: MemeRequest):
     try:
         # Generate image
-        result = generator(request.text, num_return_sequences=1)
-        image = result[0]['image']
+        with torch.no_grad():
+            image = pipe(request.text).images[0]
 
         # Convert PIL image to base64 string
         buffered = io.BytesIO()
