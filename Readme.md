@@ -18,8 +18,8 @@ This application generates crypto memes based on text prompts using a Hugging Fa
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/honestflix/cryptomeme.git
-   cd cryptomeme
+   git clone https://github.com/honestflix/cryptomeme-backend.git
+   cd cryptomeme-backend
 
 2. Create a virtual environment:
     
