@@ -1,16 +1,37 @@
-from fastapi import FastAPI, WebSocket, HTTPException
-import httpx
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 from dotenv import load_dotenv
 import os
+import httpx
 
+# Load environment variables from .env file
 load_dotenv()
 
+# Initialize the FastAPI application
 app = FastAPI()
-class CryptoMeme():
-    
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Define the request model
+class MemeItem(BaseModel):
+    type: str
+    prompt: str
+    width: Optional[int] = 512
+    height: Optional[int] = 512
+    init_image: Optional[str] = ''
+
+# Define the CryptoMeme class
+class CryptoMeme:
     def __init__(self):
-        super().__init__()
         self.api_url = "https://api.corcel.io/v1/image/vision/"
         self.api_key = os.getenv("API_KEY")
         
@@ -28,19 +49,13 @@ class CryptoMeme():
             try:
                 response = await client.post(endpoint, json=body, headers=headers)
                 response.raise_for_status()
-
-                data = response.json()
-                # image_response = utility_models.ImageResponseBody(**data)
-                # return image_response
-                return data
-
+                return response.json()
             except httpx.HTTPStatusError as error:
-                    f"Error getting an image; response {error.response.status_code} while making request to {endpoint}: {error}"
-            
+                raise HTTPException(status_code=error.response.status_code, detail=str(error))
             except httpx.RequestError as error:
-                    f"Error getting an image; An error occurred while making request to {endpoint}: {error}"
+                raise HTTPException(status_code=500, detail=str(error))
 
-    async def text_to_image(self, private_input):
+    async def text_to_image(self, private_input: MemeItem):
         POST_ENDPOINT = 'text-to-image'
         body = {
             "cfg_scale": 2,
@@ -51,10 +66,9 @@ class CryptoMeme():
             "text_prompts": [{"text": private_input.prompt}]
         }
 
-        image_response_body = await self.get_image_from_server(body, POST_ENDPOINT, timeout=15)
-        return image_response_body
+        return await self.get_image_from_server(body, POST_ENDPOINT, timeout=15)
     
-    async def image_to_image(self, private_input):
+    async def image_to_image(self, private_input: MemeItem):
         POST_ENDPOINT = "image-to-image"
         body = {
             "image_strength": 0.25,
@@ -67,15 +81,21 @@ class CryptoMeme():
             "init_image": private_input.init_image
         }
 
-        image_response_body = await self.get_image_from_server(body, POST_ENDPOINT, timeout=15)
-        return image_response_body
+        return await self.get_image_from_server(body, POST_ENDPOINT, timeout=15)
 
-    async def forward(self, private_input, timeout: float):
+    async def forward(self, private_input: MemeItem, timeout: float):
         if private_input.type == 'txt2img':
             return await self.text_to_image(private_input)
         elif private_input.type == 'img2img':
             return await self.image_to_image(private_input)
+        else:
+            raise HTTPException(status_code=400, detail="Invalid type specified")
 
-    async def run(self, private_input):
-        response = await self.forward(private_input,60)
-        return response
+    async def run(self, private_input: MemeItem):
+        return await self.forward(private_input, 60)
+
+# Define the FastAPI endpoint
+@app.post("/meme")
+async def create_meme(meme_item: MemeItem):
+    crypto_meme = CryptoMeme()
+    return await crypto_meme.run(meme_item)
