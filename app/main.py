@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import requests
-from dotenv import load_env
+from dotenv import load_dotenv
 import os
 class ImageRequest(BaseModel):
     text: str
@@ -11,7 +11,7 @@ class ImageRequest(BaseModel):
     steps: int = 8
     engine: str = "proteus"
 
-load_env()
+load_dotenv()
 
 app = FastAPI()
 
