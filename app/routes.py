@@ -49,5 +49,5 @@ async def generate_image(request: ImageRequest):
 
 @router.get("/list", response_model=List[ImageDetails])
 async def list_images():
-    images = load_image_details()
+    images = load_image_details()   
     return images
