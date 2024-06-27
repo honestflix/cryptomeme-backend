@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import requests
-
+from dotenv import load_env
+import os
 class ImageRequest(BaseModel):
     text: str
     cfg_scale: int = 2
@@ -10,10 +11,12 @@ class ImageRequest(BaseModel):
     steps: int = 8
     engine: str = "proteus"
 
+load_env()
+
 app = FastAPI()
 
 COEL_API_URL = "https://api.corcel.io/v1/image/vision/text-to-image"
-API_KEY = "d035c474-3158-4b96-9b0e-3d337788d956"
+TOKEN = os.getenv("TOKEN")
 
 @app.post("/generate-image")
 async def generate_image(request: ImageRequest):
@@ -33,7 +36,7 @@ async def generate_image(request: ImageRequest):
     headers = {
         "accept": "application/json",
         "content-type": "application/json",
-        "Authorization": API_KEY
+        "Authorization": TOKEN
     }
 
     response = requests.post(COEL_API_URL, json=payload, headers=headers)
