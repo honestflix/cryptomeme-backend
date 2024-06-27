@@ -37,7 +37,7 @@ async def generate_image(request: ImageRequest):
         raise HTTPException(status_code=response.status_code, detail=response.text)
 
     response_data = response.json()
-    image_url = response_data.get("signed_url")  
+    image_url = response_data.get("signed_urls")  
 
     if not image_url:
         raise HTTPException(status_code=500, detail="Image URL not found in the response")
