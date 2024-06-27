@@ -27,8 +27,8 @@ class MemeItem(BaseModel):
     init_image: Optional[str] = ''
 
 
-@app.post("/generate_meme/")
-async def vision(item: MemeItem):
-    return await CryptoMeme.run(item)
+@app.post("/meme/")
+async def meme(item: MemeItem):
+    return await CryptoMeme.run(item, private_input=[])
 
 
