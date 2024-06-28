@@ -10,8 +10,8 @@ from typing import List
 class ImageRequest(BaseModel):
     text: str
     cfg_scale: int = 2
-    height: int = 1024
-    width: int = 1024
+    height: int = 512
+    width: int = 512
     steps: int = 8
     engine: str = "proteus"
 
@@ -69,7 +69,6 @@ async def generate_image(request: ImageRequest):
 
     data.append(new_entry)
     
-    # Save response JSON to a file
     with open("response.json", "w") as json_file:
         json.dump(response_json, json_file)
 
