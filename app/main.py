@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
 from dotenv import load_dotenv
@@ -6,6 +7,7 @@ import os
 import json
 from datetime import datetime
 from typing import List
+import logging
 
 class ImageRequest(BaseModel):
     text: str
@@ -15,18 +17,50 @@ class ImageRequest(BaseModel):
     steps: int = 8
     engine: str = "proteus"
 
+# Load environment variables
 load_dotenv()
 
+# Initialize the FastAPI app
 app = FastAPI()
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# CORS Middleware for handling cross-origin requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Update with your frontend's URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# API configuration
 COEL_API_URL = "https://api.corcel.io/v1/image/vision/text-to-image"
 TOKEN = os.getenv("TOKEN")
 
 if not TOKEN:
     raise ValueError("Missing required environment variable: TOKEN")
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    # Log the incoming request
+    logger.info(f"New request: {request.method} {request.url}")
+    logger.info(f"Request headers: {request.headers}")
+    client_ip = request.client.host
+    logger.info(f"Client IP: {client_ip}")
+
+    # Process the request
+    response = await call_next(request)
+
+    # Log the response status
+    logger.info(f"Response status: {response.status_code}")
+
+    return response
+
 @app.post("/generate")
-async def generate_image(request: ImageRequest):
+async def generate_image(request: ImageRequest, client_ip: str = Request.client.host):
     payload = {
         "text_prompts": [
             {
@@ -56,9 +90,11 @@ async def generate_image(request: ImageRequest):
     new_entry = {
         "text": request.text,
         "created_at": datetime.utcnow().isoformat(),
+        "client_ip": client_ip,
         "response": response_json
     }
-    
+
+    # Load existing data and append the new entry
     try:
         with open("response.json", "r") as json_file:
             data = json.load(json_file)
@@ -68,9 +104,10 @@ async def generate_image(request: ImageRequest):
         data = []
 
     data.append(new_entry)
-    
+
+    # Save updated data back to the file
     with open("response.json", "w") as json_file:
-        json.dump(response_json, json_file)
+        json.dump(data, json_file, indent=4)
 
     return response_json
 
