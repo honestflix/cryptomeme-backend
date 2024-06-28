@@ -43,36 +43,34 @@ TOKEN = os.getenv("TOKEN")
 if not TOKEN:
     raise ValueError("Missing required environment variable: TOKEN")
 
+# Middleware for logging requests
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    # Log the incoming request
+    client_ip = request.client.host
     logger.info(f"New request: {request.method} {request.url}")
     logger.info(f"Request headers: {request.headers}")
-    client_ip = request.client.host
     logger.info(f"Client IP: {client_ip}")
 
-    # Process the request
     response = await call_next(request)
 
-    # Log the response status
     logger.info(f"Response status: {response.status_code}")
-
     return response
 
 @app.post("/generate")
-async def generate_image(request: ImageRequest, client_ip: str = Request.client.host):
+async def generate_image(request: Request, image_request: ImageRequest):
+    client_ip = request.client.host
     payload = {
         "text_prompts": [
             {
-                "text": request.text,
+                "text": image_request.text,
                 "weight": 0
             }
         ],
-        "cfg_scale": request.cfg_scale,
-        "height": request.height,
-        "width": request.width,
-        "steps": request.steps,
-        "engine": request.engine
+        "cfg_scale": image_request.cfg_scale,
+        "height": image_request.height,
+        "width": image_request.width,
+        "steps": image_request.steps,
+        "engine": image_request.engine
     }
     headers = {
         "accept": "application/json",
@@ -88,7 +86,7 @@ async def generate_image(request: ImageRequest, client_ip: str = Request.client.
     response_json = response.json()
 
     new_entry = {
-        "text": request.text,
+        "text": image_request.text,
         "created_at": datetime.utcnow().isoformat(),
         "client_ip": client_ip,
         "response": response_json
