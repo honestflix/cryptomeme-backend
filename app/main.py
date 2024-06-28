@@ -10,8 +10,8 @@ from typing import List
 class ImageRequest(BaseModel):
     text: str
     cfg_scale: int = 2
-    height: int = 512
-    width: int = 512
+    height: int = 1024
+    width: int = 1024
     steps: int = 8
     engine: str = "proteus"
 
